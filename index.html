@@ -2,32 +2,44 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Retro Radio Tuner</title>
+    <meta name="description" content="Radio online de todo el mundo con aspecto retro: miles de emisoras por país, buscador, favoritas y controles en la pantalla de bloqueo.">
+    <meta name="theme-color" content="#1a1a1a">
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <style>
         :root {
             --radio-body: #333;
             --panel-metal: #444;
             --display-bg: #1a1a1a;
             --display-text: #00ff41; /* Verde digital retro */
+            --display-dim: #0b8f2a;
             --accent-gold: #d4af37;
+            --danger: #ff5a4f;
+            --warn: #ffb000;
+            --text-soft: #aaa;
+            --line: #555;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             background-color: #1a1a1a;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
+            padding: 24px 0;
             font-family: 'Courier New', Courier, monospace;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* El chasis de la radio */
         .radio-case {
             background: var(--radio-body);
-            width: 90%;
-            max-width: 500px;
+            width: calc(100% - 32px);
+            max-width: 520px;
             padding: 30px;
             border-radius: 40px;
             border: 8px solid #222;
@@ -43,9 +55,16 @@
             background-size: 5px 5px;
             border-radius: 50%;
             position: absolute;
-            top: 30px;
-            right: 40px;
+            top: 22px;
+            right: 34px;
             border: 3px solid #222;
+        }
+
+        .speaker-grill.on { animation: thump 0.9s ease-in-out infinite; }
+
+        @keyframes thump {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
         }
 
         h1 {
@@ -53,207 +72,1071 @@
             font-size: 1.2rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-top: 0;
-            margin-bottom: 25px;
+            margin: 0 100px 25px 0;   /* deja hueco para la rejilla */
             text-shadow: 1px 1px 2px black;
         }
 
-        /* Pantalla Digital */
+        /* ═══════════ PANTALLA DIGITAL ═══════════ */
         .digital-display {
             background: var(--display-bg);
-            padding: 15px;
+            padding: 12px 14px;
             border-radius: 8px;
-            border: 4px solid #555;
-            margin-bottom: 25px;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            border: 4px solid var(--line);
+            margin-bottom: 18px;
+            min-height: 96px;
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            gap: 12px;
+            align-items: center;
             box-shadow: inset 0 0 15px rgba(0,0,0,1);
         }
 
-        #status-text {
-            color: var(--display-text);
-            font-size: 0.75rem;
-            margin-bottom: 5px;
-            opacity: 0.8;
+        .station-logo {
+            width: 56px;
+            height: 56px;
+            border-radius: 6px;
+            background: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-size: 26px;
+            filter: grayscale(0.2);
         }
 
-        #current-station {
+        .station-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+        .display-text { min-width: 0; }
+
+        #status-text {
             color: var(--display-text);
-            font-size: 1.1rem;
-            font-weight: bold;
-            text-shadow: 0 0 8px var(--display-text);
+            font-size: 0.72rem;
+            margin-bottom: 4px;
+            opacity: 0.85;
+            display: flex;
+            align-items: center;
+            gap: 6px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        /* Controles */
+        #status-text.warn { color: var(--warn); }
+        #status-text.error { color: var(--danger); }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--display-dim);
+            flex-shrink: 0;
+        }
+
+        .live-dot.on { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation: blink 1.2s infinite; }
+
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        .marquee { overflow: hidden; white-space: nowrap; }
+
+        #current-station {
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: top;
+            color: var(--display-text);
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--display-text);
+        }
+
+        #current-station.scroll { max-width: none; overflow: visible; animation: marquee 12s linear infinite; padding-left: 100%; }
+
+        @keyframes marquee { to { transform: translateX(-100%); } }
+
+        #station-meta {
+            color: var(--display-dim);
+            font-size: 0.7rem;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ═══════════ BOTONERA ═══════════ */
+        .transport {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .knob {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 3px solid #222;
+            background: radial-gradient(circle at 35% 30%, #666, #2b2b2b 70%);
+            color: #ddd;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .knob:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+        .knob:disabled { opacity: 0.4; cursor: not-allowed; }
+        .knob.big { width: 66px; height: 66px; font-size: 24px; color: var(--accent-gold); }
+        .knob.fav.on { color: var(--accent-gold); }
+
+        .volume-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            color: var(--text-soft);
+            font-size: 0.75rem;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent-gold);
+            height: 24px;
+        }
+
+        /* ═══════════ CONTROLES ═══════════ */
         .controls {
             background: #2a2a2a;
-            padding: 20px;
+            padding: 16px;
             border-radius: 15px;
             box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
         }
 
-        .control-group {
-            margin-bottom: 15px;
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 14px;
         }
 
-        label {
-            color: #aaa;
+        .tab {
+            background: #3a3a3a;
+            color: var(--text-soft);
+            border: 1px solid #222;
+            border-radius: 6px;
+            padding: 9px 4px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #1b1b1b;
+        }
+
+        .tab.active {
+            color: var(--display-bg);
+            background: var(--accent-gold);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .control-group { margin-bottom: 12px; }
+
+        label, .small-label {
+            color: var(--text-soft);
             font-size: 0.7rem;
             display: block;
             margin-bottom: 5px;
             text-transform: uppercase;
         }
 
-        select {
+        select, input[type="search"] {
             width: 100%;
             background: #444;
             color: white;
             border: 1px solid #666;
-            padding: 8px;
+            padding: 10px;
             border-radius: 4px;
-            cursor: pointer;
+            font-family: inherit;
+            font-size: 16px;   /* evita el zoom automático de iOS al enfocar */
             outline: none;
         }
 
-        select:focus { border-color: var(--accent-gold); }
+        select { cursor: pointer; }
+        select:focus, input[type="search"]:focus { border-color: var(--accent-gold); }
 
-        /* Reproductor de Audio (Personalizado mínimamente) */
-        audio {
-            width: 100%;
-            height: 35px;
-            margin-top: 20px;
-            filter: invert(80%) hue-rotate(180deg) brightness(1.2);
+        .check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            color: var(--text-soft);
+            font-size: 0.75rem;
+            text-transform: none;
+            cursor: pointer;
+        }
+
+        .check input { accent-color: var(--accent-gold); width: 16px; height: 16px; }
+
+        .list-info {
+            color: #888;
+            font-size: 0.7rem;
+            margin: 4px 0 8px;
+            line-height: 1.4;
+        }
+
+        /* ═══════════ LISTA DE EMISORAS ═══════════ */
+        .station-list {
+            max-height: 340px;
+            overflow-y: auto;
+            border: 1px solid #1f1f1f;
+            border-radius: 6px;
+            background: #232323;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .station-list::-webkit-scrollbar { width: 6px; }
+        .station-list::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+        .station {
+            display: grid;
+            grid-template-columns: 36px 1fr 40px;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 6px 8px 10px;
+            border-bottom: 1px solid #2e2e2e;
+            cursor: pointer;
+        }
+
+        .station:last-child { border-bottom: none; }
+        .station:hover { background: #2c2c2c; }
+        .station.active { background: #1c2a1f; box-shadow: inset 3px 0 0 var(--display-text); }
+
+        .station .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 4px;
+            background: #151515;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-size: 16px;
+        }
+
+        .station .logo img { width: 100%; height: 100%; object-fit: contain; }
+
+        .station .info { min-width: 0; }
+
+        .station .name {
+            color: #eee;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .station.active .name { color: var(--display-text); }
+
+        .station .meta {
+            color: #888;
+            font-size: 0.68rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .star {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 6px;
+            touch-action: manipulation;
+        }
+
+        .star.on { color: var(--accent-gold); }
+
+        .empty {
+            padding: 24px 12px;
+            text-align: center;
+            color: #777;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .error-box {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: rgba(255,90,79,0.1);
+            border: 1px solid rgba(255,90,79,0.4);
+            color: #ffb3ad;
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .error-box.show { display: block; }
+
+        .error-box button {
+            margin-top: 8px;
+            background: var(--accent-gold);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
         }
 
         .brand {
-            text-align: right;
-            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            color: #666;
             font-size: 0.6rem;
             margin-top: 15px;
             font-style: italic;
+            text-decoration: none;
         }
 
-        /* Animación para el texto de la emisora */
-        .marquee {
-            overflow: hidden;
-            position: relative;
+        .brand img { width: 22px; height: 22px; opacity: 0.8; }
+        .brand:hover { color: var(--accent-gold); }
+
+        .credits {
+            color: #555;
+            font-size: 0.6rem;
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        .credits a { color: #777; }
+
+        /* ═══════════ MÓVIL ═══════════ */
+        @media (max-width: 480px) {
+            body { padding: 12px 0; }
+            .radio-case { padding: 20px 16px; border-radius: 28px; border-width: 6px; }
+            .speaker-grill { width: 56px; height: 56px; top: 16px; right: 18px; }
+            h1 { font-size: 1rem; letter-spacing: 1px; margin: 4px 64px 20px 0; }
+            .digital-display { grid-template-columns: 46px 1fr; gap: 10px; }
+            .station-logo { width: 46px; height: 46px; font-size: 22px; }
+            .controls { padding: 12px; }
+            .station-list { max-height: 50vh; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #current-station.scroll, .speaker-grill.on, .live-dot.on { animation: none; }
+            #current-station.scroll { padding-left: 0; }
         }
     </style>
 </head>
 <body>
 
 <div class="radio-case">
-    <div class="speaker-grill"></div>
-    <h1>Retro Tuner v1.0</h1>
+    <div class="speaker-grill" id="grill"></div>
+    <h1>Retro Tuner v2.0</h1>
 
     <div class="digital-display">
-        <div id="status-text">Buscando señal...</div>
-        <div class="marquee">
-            <div id="current-station">SINTONICE UNA EMISORA</div>
+        <div class="station-logo" id="display-logo">📻</div>
+        <div class="display-text">
+            <div id="status-text"><span class="live-dot" id="live-dot"></span><span id="status-msg">BUSCANDO SEÑAL...</span></div>
+            <div class="marquee"><div id="current-station">SINTONICE UNA EMISORA</div></div>
+            <div id="station-meta"></div>
         </div>
     </div>
 
+    <div class="transport">
+        <button class="knob" id="btnPrev" title="Emisora anterior" aria-label="Emisora anterior" disabled>⏮</button>
+        <button class="knob big" id="btnPlay" title="Reproducir / pausa" aria-label="Reproducir" disabled>▶</button>
+        <button class="knob" id="btnNext" title="Emisora siguiente" aria-label="Emisora siguiente" disabled>⏭</button>
+        <button class="knob fav" id="btnFav" title="Añadir a favoritas" aria-label="Añadir a favoritas" disabled>☆</button>
+    </div>
+
+    <div class="volume-row" id="volume-row">
+        <span>🔈</span>
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
+        <span>🔊</span>
+    </div>
+
     <div class="controls">
-        <div class="control-group">
-            <label>País / Región</label>
+        <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="country" role="tab">🌍 País</button>
+            <button class="tab" data-tab="search" role="tab">🔍 Buscar</button>
+            <button class="tab" data-tab="favs" role="tab">★ Favs</button>
+        </div>
+
+        <div class="control-group" data-panel="country">
+            <label for="countrySelect">País / Región</label>
             <select id="countrySelect">
                 <option value="">Cargando servidores...</option>
             </select>
         </div>
 
-        <div class="control-group">
-            <label>Dial de Emisoras</label>
-            <select id="stationSelect" disabled>
-                <option value="">Seleccione país</option>
-            </select>
+        <div class="control-group" data-panel="search" hidden>
+            <label for="searchInput">Nombre de la emisora</label>
+            <input type="search" id="searchInput" placeholder="Ej: rock, jazz, Radio 3..." autocomplete="off" enterkeyhint="search">
+            <label class="check"><input type="checkbox" id="searchInCountry"> Solo en <span id="searchCountryName">el país elegido</span></label>
         </div>
 
-        <audio id="audioPlayer" controls>
-            Tu navegador no soporta audio.
-        </audio>
+        <div class="list-info" id="list-info"></div>
+        <div class="station-list" id="station-list">
+            <div class="empty">Elige un país para ver sus emisoras</div>
+        </div>
+
+        <div class="error-box" id="error-box">
+            <div id="error-msg"></div>
+            <button id="btnSkip">⏭ Probar la siguiente</button>
+        </div>
     </div>
 
-    <div class="brand">Model: www.unfantasmaenelsistema.com - High-Fidelity-2026</div>
+    <a class="brand" href="https://www.unfantasmaenelsistema.com" target="_blank" rel="noopener">
+        Model: www.unfantasmaenelsistema.com - High-Fidelity-2026
+        <img src="assets/logo.png" alt="Un Fantasma en el Sistema">
+    </a>
+    <div class="credits">Emisoras: <a href="https://www.radio-browser.info" target="_blank" rel="noopener">radio-browser.info</a></div>
+
+    <audio id="audioPlayer" preload="none" hidden></audio>
 </div>
 
 <script>
-    let apiServer = "";
+    // ═══════════════ CONFIG ═══════════════
+    const FALLBACK_SERVERS = ['de1', 'de2', 'fi1', 'nl1', 'at1'].map(h => `${h}.api.radio-browser.info`);
+    const STATIONS_LIMIT = 150;
+    const MAX_RETRIES = 3;
+    const IS_HTTPS = location.protocol === 'https:';
+    const HLS_JS = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js';
 
-    async function initRadio() {
+    const $ = id => document.getElementById(id);
+    const audio = $('audioPlayer');
+    const regionNames = (() => { try { return new Intl.DisplayNames(['es'], { type: 'region' }); } catch (e) { return null; } })();
+
+    // ═══════════════ ESTADO ═══════════════
+    let servers = [];
+    let serverIdx = 0;
+    let list = [];          // emisoras que se ven ahora en la lista
+    let current = null;     // emisora sintonizada
+    let currentIdx = -1;    // su posición en `list` (para anterior / siguiente)
+    let tab = 'country';
+    let wantPlaying = false;
+    let hadPlayed = false;  // el stream llegó a sonar (si cae, se reintenta)
+    let retries = 0;
+    let attempt = 0;        // id del intento de carga actual
+    let failedAttempt = -1;
+    let stallTimer = null;
+    let hls = null;
+    let searchTimer = null;
+
+    // ═══════════════ ALMACENAMIENTO ═══════════════
+    function load(key, fallback) {
+        try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
+    }
+
+    function store(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    }
+
+    let favs = load('rw-favs', []);
+    const saved = load('rw-state', {});
+
+    function saveState() {
+        store('rw-state', {
+            country: $('countrySelect').value || saved.country,
+            volume: audio.volume,
+            tab,
+            last: current,
+            searchInCountry: $('searchInCountry').checked
+        });
+    }
+
+    // ═══════════════ PANTALLA ═══════════════
+    function setStatus(msg, type = '') {
+        $('status-msg').textContent = msg;
+        $('status-text').className = type;
+    }
+
+    function setOnAir(on) {
+        $('live-dot').classList.toggle('on', on);
+        $('grill').classList.toggle('on', on);
+        $('btnPlay').textContent = wantPlaying ? '⏸' : '▶';
+        $('btnPlay').setAttribute('aria-label', wantPlaying ? 'Pausa' : 'Reproducir');
+    }
+
+    function showError(msg) {
+        $('error-msg').textContent = msg;
+        $('error-box').classList.toggle('show', !!msg);
+        $('btnSkip').hidden = list.length < 2;
+    }
+
+    function logoNode(station, fallback) {
+        if (station && station.favicon) {
+            const img = document.createElement('img');
+            img.src = station.favicon;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.referrerPolicy = 'no-referrer';
+            img.onerror = () => img.replaceWith(document.createTextNode(fallback));
+            return img;
+        }
+        return document.createTextNode(fallback);
+    }
+
+    function stationMeta(s) {
+        const parts = [];
+        if (s.codec && s.codec !== 'UNKNOWN') parts.push(s.codec);
+        if (s.bitrate) parts.push(s.bitrate + ' kbps');
+        if (s.hls) parts.push('HLS');
+        if (s.insecure) parts.unshift('🔓');
+        if (s.country) parts.push(s.state ? `${s.state}, ${s.country}` : s.country);
+        return parts.join(' · ');
+    }
+
+    function renderDisplay() {
+        const name = $('current-station');
+        name.classList.remove('scroll');
+        name.textContent = current ? current.name.toUpperCase() : 'SINTONICE UNA EMISORA';
+        $('station-meta').textContent = current ? stationMeta(current) : '';
+        $('display-logo').replaceChildren(logoNode(current, '📻'));
+        // Nombres largos: desplazar como un display de verdad
+        requestAnimationFrame(() => {
+            if (current && name.scrollWidth > name.clientWidth) name.classList.add('scroll');
+        });
+        const isFav = current && favs.some(f => f.id === current.id);
+        $('btnFav').classList.toggle('on', !!isFav);
+        $('btnFav').textContent = isFav ? '★' : '☆';
+        $('btnFav').disabled = !current;
+        $('btnPlay').disabled = !current;
+        // Sin lista, o con una sola emisora que ya suena, no hay a dónde saltar
+        $('btnPrev').disabled = $('btnNext').disabled = !list.length || (list.length === 1 && currentIdx === 0);
+    }
+
+    // ═══════════════ API (con cambio automático de servidor) ═══════════════
+    async function fetchTimeout(url, ms = 8000) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), ms);
         try {
-            const response = await fetch('https://all.api.radio-browser.info/json/servers');
-            const servers = await response.json();
-            const randomServer = servers[Math.floor(Math.random() * servers.length)];
-            apiServer = `https://${randomServer.name}`;
-            document.getElementById('status-text').innerText = `SYSTEM READY: ${randomServer.name.toUpperCase()}`;
-            loadCountries();
-        } catch (error) {
-            document.getElementById('status-text').innerText = "CONNECTION ERROR";
+            const res = await fetch(url, { signal: ctrl.signal });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+        } finally {
+            clearTimeout(t);
         }
     }
 
+    async function initServers() {
+        let found = [];
+        try {
+            const data = await fetchTimeout('https://all.api.radio-browser.info/json/servers', 5000);
+            found = data.map(s => s.name);
+        } catch (e) {}
+        // Orden aleatorio para repartir la carga, con los conocidos como respaldo
+        found = [...new Set(found)].sort(() => Math.random() - 0.5);
+        servers = [...new Set([...found, ...FALLBACK_SERVERS])];
+    }
+
+    // Prueba los servidores uno tras otro hasta que uno responda
+    async function api(path) {
+        let lastError;
+        for (let i = 0; i < servers.length; i++) {
+            const idx = (serverIdx + i) % servers.length;
+            try {
+                const data = await fetchTimeout(`https://${servers[idx]}${path}`);
+                serverIdx = idx;
+                return data;
+            } catch (e) {
+                lastError = e;
+            }
+        }
+        throw lastError || new Error('Sin servidores');
+    }
+
+    // ═══════════════ EMISORAS ═══════════════
+    // En una web HTTPS el navegador bloquea el audio por HTTP. Muchas de esas
+    // emisoras también emiten por HTTPS (SER, COPE, Cadena 100...): se prueba así
+    // y se marcan como `insecure` para explicar el fallo si no responden.
+    function pickUrl(s) {
+        const urls = [s.url_resolved, s.url].filter(Boolean);
+        const secure = urls.find(u => u.startsWith('https:'));
+        if (secure) return { url: secure, insecure: false };
+        if (!urls[0]) return null;
+        return IS_HTTPS
+            ? { url: urls[0].replace(/^http:/i, 'https:'), insecure: true }
+            : { url: urls[0], insecure: false };
+    }
+
+    function normalize(s) {
+        const picked = pickUrl(s);
+        if (!picked) return null;
+        const { url, insecure } = picked;
+        return {
+            id: s.stationuuid,
+            name: (s.name || 'Sin nombre').trim(),
+            url,
+            insecure,
+            favicon: s.favicon && s.favicon.startsWith('https:') ? s.favicon : '',
+            codec: s.codec || '',
+            bitrate: s.bitrate || 0,
+            hls: s.hls === 1 || /\.m3u8(\?|$)/i.test(url),
+            cc: s.countrycode || '',
+            country: countryName(s.countrycode) || s.country || '',
+            state: (s.state || '').trim()
+        };
+    }
+
+    // La API repite emisoras con el mismo nombre (varias calidades):
+    // vienen ordenadas por popularidad, así que se queda la primera
+    function prepare(raw) {
+        const seen = new Set();
+        let insecure = 0;
+        const out = [];
+        for (const s of raw) {
+            const n = normalize(s);
+            if (!n) continue;
+            const key = n.name.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (n.insecure) insecure++;
+            out.push(n);
+        }
+        return { stations: out, insecure };
+    }
+
+    function countryName(code) {
+        if (!code) return '';
+        try { return regionNames ? regionNames.of(code.toUpperCase()) : code; } catch (e) { return code; }
+    }
+
     async function loadCountries() {
+        const countries = await api('/json/countries?hidebroken=true');
+        const select = $('countrySelect');
+        const opts = countries
+            .filter(c => c.iso_3166_1 && c.stationcount > 0)
+            .map(c => ({ code: c.iso_3166_1, name: countryName(c.iso_3166_1) || c.name, count: c.stationcount }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+        select.innerHTML = '<option value="">-- ELIGE PAÍS --</option>';
+        for (const c of opts) {
+            const opt = document.createElement('option');
+            opt.value = c.code;
+            opt.textContent = `${c.name.toUpperCase()} (${c.count})`;
+            select.appendChild(opt);
+        }
+    }
+
+    function stationsQuery(params) {
+        const q = new URLSearchParams({ hidebroken: 'true', order: 'clickcount', reverse: 'true', limit: STATIONS_LIMIT, ...params });
+        return api('/json/stations/search?' + q);
+    }
+
+    async function loadCountryStations(code) {
+        if (!code) { setList([], 'Elige un país para ver sus emisoras'); return; }
+        setStatus('BUSCANDO EMISORAS...');
+        renderEmpty('SINTONIZANDO...');
         try {
-            const response = await fetch(`${apiServer}/json/countries?order=name`);
-            const countries = await response.json();
-            const select = document.getElementById('countrySelect');
-            select.innerHTML = '<option value="">-- ELIGE PAÍS --</option>';
-            countries.forEach(c => {
-                if(c.name.trim() !== "") {
-                    const opt = document.createElement('option');
-                    opt.value = c.iso_3166_1;
-                    opt.textContent = c.name.toUpperCase();
-                    select.appendChild(opt);
-                }
-            });
-        } catch (e) { console.error(e); }
+            const { stations, insecure } = prepare(await stationsQuery({ countrycode: code }));
+            setList(stations, 'No hay emisoras que funcionen en este país', insecure);
+            if (!wantPlaying) setStatus(stations.length ? 'SEÑAL ENCONTRADA' : 'SIN EMISORAS');
+        } catch (e) {
+            setList([], 'No se pudo conectar con el directorio de emisoras. Comprueba tu conexión.');
+            setStatus('ERROR DE BÚSQUEDA', 'error');
+        }
     }
 
-    async function loadStations(code) {
-        const sSelect = document.getElementById('stationSelect');
-        sSelect.disabled = false;
-        sSelect.innerHTML = '<option>SINTONIZANDO...</option>';
-        document.getElementById('status-text').innerText = "BUSCANDO EMISORAS...";
-
+    async function searchStations() {
+        const term = $('searchInput').value.trim();
+        if (term.length < 2) { setList([], 'Escribe al menos 2 letras'); return; }
+        const params = { name: term };
+        const cc = $('countrySelect').value;
+        if ($('searchInCountry').checked && cc) params.countrycode = cc;
+        renderEmpty('BUSCANDO...');
         try {
-            const res = await fetch(`${apiServer}/json/stations/bycountrycodeexact/${code}?order=clickcount&reverse=true&limit=100`);
-            const stations = await res.json();
-            sSelect.innerHTML = '<option value="">-- SELECCIONAR DIAL --</option>';
-            stations.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.url_resolved;
-                opt.dataset.name = s.name;
-                opt.dataset.uuid = s.stationuuid;
-                opt.textContent = s.name.substring(0, 30).toUpperCase();
-                sSelect.appendChild(opt);
-            });
-            document.getElementById('status-text').innerText = "SEÑAL ENCONTRADA";
-        } catch (e) { document.getElementById('status-text').innerText = "ERROR DE BÚSQUEDA"; }
+            const { stations, insecure } = prepare(await stationsQuery(params));
+            if ($('searchInput').value.trim() !== term) return;   // llegó tarde: ya se busca otra cosa
+            setList(stations, `Nada encontrado para «${term}»`, insecure);
+        } catch (e) {
+            setList([], 'No se pudo buscar. Comprueba tu conexión.');
+        }
     }
 
-    function playStation(url, name, uuid) {
-        const player = document.getElementById('audioPlayer');
-        const display = document.getElementById('current-station');
-        display.innerText = name.toUpperCase();
-        player.src = url;
-        player.play();
-        document.getElementById('status-text').innerText = "REPRODUCIENDO AHORA:";
-        fetch(`${apiServer}/json/url/${uuid}`);
+    // ═══════════════ LISTA ═══════════════
+    function renderEmpty(msg) {
+        const div = document.createElement('div');
+        div.className = 'empty';
+        div.textContent = msg;
+        $('station-list').replaceChildren(div);
     }
 
-    document.getElementById('countrySelect').addEventListener('change', e => loadStations(e.target.value));
-    document.getElementById('stationSelect').addEventListener('change', e => {
-        const opt = e.target.options[e.target.selectedIndex];
-        if (opt.value) playStation(opt.value, opt.dataset.name, opt.dataset.uuid);
+    function setList(stations, emptyMsg, insecure = 0) {
+        list = stations;
+        currentIdx = current ? list.findIndex(s => s.id === current.id) : -1;
+        let info = list.length ? `${list.length} emisoras` : '';
+        if (insecure) info += ` · ${insecure} marcadas 🔓: solo anuncian HTTP y pueden no sonar`;
+        $('list-info').textContent = info;
+        if (!list.length) renderEmpty(emptyMsg); else renderList();
+        renderDisplay();
+    }
+
+    function renderList() {
+        const frag = document.createDocumentFragment();
+        list.forEach((s, i) => {
+            const row = document.createElement('div');
+            row.className = 'station' + (current && s.id === current.id ? ' active' : '');
+            row.dataset.idx = i;
+
+            const logo = document.createElement('div');
+            logo.className = 'logo';
+            logo.appendChild(logoNode(s, '📻'));
+
+            const info = document.createElement('div');
+            info.className = 'info';
+            const name = document.createElement('div');
+            name.className = 'name';
+            name.textContent = s.name;
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            meta.textContent = stationMeta(s) || '—';
+            info.append(name, meta);
+
+            const star = document.createElement('button');
+            const isFav = favs.some(f => f.id === s.id);
+            star.className = 'star' + (isFav ? ' on' : '');
+            star.textContent = isFav ? '★' : '☆';
+            star.title = isFav ? 'Quitar de favoritas' : 'Añadir a favoritas';
+            star.dataset.fav = i;
+
+            row.append(logo, info, star);
+            frag.appendChild(row);
+        });
+        $('station-list').replaceChildren(frag);
+    }
+
+    function markActive() {
+        document.querySelectorAll('.station').forEach(r => r.classList.toggle('active', +r.dataset.idx === currentIdx));
+        const active = document.querySelector('.station.active');
+        if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+
+    $('station-list').addEventListener('click', e => {
+        const star = e.target.closest('[data-fav]');
+        if (star) { toggleFav(list[+star.dataset.fav]); return; }
+        const row = e.target.closest('.station');
+        if (row) tune(+row.dataset.idx);
     });
+
+    // ═══════════════ FAVORITAS ═══════════════
+    function toggleFav(station) {
+        if (!station) return;
+        const i = favs.findIndex(f => f.id === station.id);
+        if (i >= 0) favs.splice(i, 1); else favs.push(station);
+        store('rw-favs', favs);
+        if (tab === 'favs') showFavs(); else renderList();
+        renderDisplay();
+    }
+
+    function showFavs() {
+        setList([...favs], 'Aún no tienes favoritas. Pulsa ☆ en una emisora para guardarla aquí.');
+    }
+
+    // ═══════════════ PESTAÑAS ═══════════════
+    function setTab(name) {
+        tab = name;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+        document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== name);
+        saveState();
+        if (name === 'country') loadCountryStations($('countrySelect').value);
+        else if (name === 'favs') showFavs();
+        else {
+            const cc = $('countrySelect').value;
+            $('searchCountryName').textContent = cc ? countryName(cc) : 'el país elegido';
+            $('searchInCountry').disabled = !cc;
+            if ($('searchInput').value.trim().length >= 2) searchStations();
+            else setList([], 'Escribe el nombre de una emisora, un estilo o una ciudad');
+        }
+    }
+
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
+
+    // ═══════════════ REPRODUCCIÓN ═══════════════
+    function tune(idx) {
+        const s = list[idx];
+        if (!s) return;
+        current = s;
+        currentIdx = idx;
+        retries = 0;
+        hadPlayed = false;
+        saveState();
+        renderDisplay();
+        markActive();
+        updateMediaSession();
+        play();
+        // Cuenta la escucha en Radio Browser (lo pide la API); si falla da igual
+        api('/json/url/' + encodeURIComponent(s.id)).catch(() => {});
+    }
+
+    function step(dir) {
+        if (!list.length) return;
+        const base = currentIdx >= 0 ? currentIdx : (dir > 0 ? -1 : 0);
+        tune((base + dir + list.length) % list.length);
+    }
+
+    function destroyHls() {
+        if (hls) { hls.destroy(); hls = null; }
+    }
+
+    let hlsLoading = null;
+    function loadHlsJs() {
+        if (window.Hls) return Promise.resolve();
+        hlsLoading = hlsLoading || new Promise((resolve, reject) => {
+            const sc = document.createElement('script');
+            sc.src = HLS_JS;
+            sc.onload = resolve;
+            sc.onerror = () => { hlsLoading = null; reject(new Error('No se pudo cargar hls.js')); };
+            document.head.appendChild(sc);
+        });
+        return hlsLoading;
+    }
+
+    // Safari (iOS/macOS) y Chrome reciente reproducen HLS solos; si no, hls.js
+    function nativeHls() { return audio.canPlayType('application/vnd.apple.mpegurl') !== ''; }
+
+    async function play() {
+        if (!current) return;
+        const id = ++attempt;
+        wantPlaying = true;
+        clearTimeout(stallTimer);
+        showError('');
+        setStatus(retries ? `RECONECTANDO (${retries}/${MAX_RETRIES})...` : 'SINTONIZANDO...', retries ? 'warn' : '');
+        setOnAir(false);
+        destroyHls();
+
+        try {
+            if (current.hls && !nativeHls()) {
+                await loadHlsJs();
+                if (id !== attempt) return;
+                if (!window.Hls.isSupported()) throw new Error('unsupported');
+                hls = new window.Hls({ enableWorker: true, lowLatencyMode: false });
+                hls.on(window.Hls.Events.ERROR, (_, d) => { if (d.fatal) fail(id); });
+                hls.loadSource(current.url);
+                hls.attachMedia(audio);
+            } else {
+                audio.src = current.url;
+            }
+            await audio.play();
+        } catch (err) {
+            if (id !== attempt) return;
+            if (err && err.name === 'NotAllowedError') {
+                // El navegador exige un toque del usuario antes de sonar
+                wantPlaying = false;
+                setOnAir(false);
+                setStatus('PULSA ▶ PARA ESCUCHAR', 'warn');
+                return;
+            }
+            // AbortError: la pausó el sistema (llamada, otra app, ahorro de energía)
+            if (err && err.name === 'AbortError') { if (audio.paused) externalPause(); return; }
+            fail(id);
+        }
+    }
+
+    function pause() {
+        wantPlaying = false;
+        attempt++;
+        clearTimeout(stallTimer);
+        audio.pause();
+        destroyHls();
+        // Vaciar el src corta la descarga del stream (en pausa seguiría gastando datos)
+        audio.removeAttribute('src');
+        audio.load();
+        setOnAir(false);
+        setStatus('EN PAUSA');
+        updateMediaSession();
+    }
+
+    function fail(id) {
+        if (id !== attempt || failedAttempt === id || !wantPlaying) return;
+        failedAttempt = id;
+        clearTimeout(stallTimer);
+        setOnAir(false);
+
+        // Si ya estaba sonando, lo normal es un corte de red: reintentar
+        if (hadPlayed && retries < MAX_RETRIES && navigator.onLine !== false) {
+            retries++;
+            setTimeout(() => { if (wantPlaying && id === attempt) play(); }, 1500 * retries);
+            setStatus(`RECONECTANDO (${retries}/${MAX_RETRIES})...`, 'warn');
+            return;
+        }
+
+        wantPlaying = false;
+        setOnAir(false);
+        setStatus('SIN SEÑAL', 'error');
+        if (navigator.onLine === false) {
+            showError('Sin conexión a Internet. Volverá a sonar sola cuando vuelva la conexión.');
+            wantPlaying = true;   // 'online' la retoma
+            return;
+        }
+        const why = hadPlayed
+            ? 'La emisora ha dejado de emitir y no se ha podido reconectar.'
+            : current.insecure
+                ? 'Esta emisora solo emite sin cifrar (HTTP) y el navegador bloquea ese audio en webs seguras (HTTPS). No tiene arreglo desde aquí.'
+            : current.hls
+                ? 'Esta emisora (formato HLS) no responde o tu navegador no puede reproducirla.'
+                : 'Esta emisora no responde ahora mismo o usa un formato que tu navegador no reproduce.';
+        showError(why);
+    }
+
+    audio.addEventListener('playing', () => {
+        hadPlayed = true;
+        retries = 0;
+        clearTimeout(stallTimer);
+        showError('');
+        setOnAir(true);
+        setStatus('EN EL AIRE');
+        updateMediaSession();
+    });
+
+    // Pausas que no vienen de la app: llamada entrante, otra app con sonido,
+    // auriculares desconectados... La app debe enterarse para no quedarse colgada
+    function externalPause() {
+        if (!wantPlaying) return;
+        wantPlaying = false;
+        attempt++;
+        clearTimeout(stallTimer);
+        setOnAir(false);
+        setStatus('EN PAUSA');
+        updateMediaSession();
+    }
+
+    audio.addEventListener('pause', () => {
+        // readyState < 2: es la propia app cambiando de emisora, no una pausa externa
+        if (!audio.ended && !audio.error && audio.readyState >= 2) externalPause();
+    });
+
+    audio.addEventListener('waiting', () => {
+        if (!wantPlaying) return;
+        setStatus('CARGANDO BÚFER...', 'warn');
+        // Si en 10 s no vuelve a sonar, se da por caída
+        const id = attempt;
+        clearTimeout(stallTimer);
+        stallTimer = setTimeout(() => fail(id), 10000);
+    });
+
+    audio.addEventListener('error', () => { if (audio.getAttribute('src') || hls) fail(attempt); });
+    // Un stream en directo no "termina": si lo hace es que se cortó
+    audio.addEventListener('ended', () => fail(attempt));
+
+    window.addEventListener('online', () => {
+        if (wantPlaying && audio.paused && current) { retries = 0; play(); }
+    });
+
+    $('btnPlay').addEventListener('click', () => {
+        if (wantPlaying) pause();
+        else { retries = 0; hadPlayed = false; play(); }
+    });
+    $('btnNext').addEventListener('click', () => step(1));
+    $('btnPrev').addEventListener('click', () => step(-1));
+    $('btnSkip').addEventListener('click', () => step(1));
+    $('btnFav').addEventListener('click', () => toggleFav(current));
+
+    // ═══════════════ VOLUMEN ═══════════════
+    // En iOS el volumen solo se cambia con los botones del teléfono: se oculta la barra
+    const volumeWorks = (() => { const a = new Audio(); a.volume = 0.5; return a.volume === 0.5; })();
+    if (!volumeWorks) $('volume-row').hidden = true;
+
+    audio.volume = typeof saved.volume === 'number' ? saved.volume : 0.8;
+    $('volume').value = audio.volume;
+    $('volume').addEventListener('input', e => { audio.volume = +e.target.value; });
+    $('volume').addEventListener('change', saveState);
+
+    // ═══════════════ PANTALLA DE BLOQUEO (Media Session) ═══════════════
+    function updateMediaSession() {
+        if (!('mediaSession' in navigator) || !current) return;
+        const artwork = current.favicon
+            ? [{ src: current.favicon, sizes: '256x256' }]
+            : [{ src: new URL('assets/logo.png', location.href).href, sizes: '512x512', type: 'image/png' }];
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: current.name,
+            artist: [current.country, current.codec !== 'UNKNOWN' ? current.codec : ''].filter(Boolean).join(' · '),
+            album: 'Retro Radio Tuner',
+            artwork
+        });
+        navigator.mediaSession.playbackState = wantPlaying ? 'playing' : 'paused';
+    }
+
+    if ('mediaSession' in navigator) {
+        const handlers = {
+            play: () => { retries = 0; hadPlayed = false; play(); },
+            pause: () => pause(),
+            stop: () => pause(),
+            previoustrack: () => step(-1),
+            nexttrack: () => step(1)
+        };
+        for (const [action, fn] of Object.entries(handlers)) {
+            try { navigator.mediaSession.setActionHandler(action, fn); } catch (e) {}
+        }
+    }
+
+    // ═══════════════ TECLADO ═══════════════
+    document.addEventListener('keydown', e => {
+        if (e.target.matches('input, select, textarea')) return;
+        if (e.code === 'Space') { e.preventDefault(); $('btnPlay').click(); }
+        else if (e.key === 'ArrowRight') step(1);
+        else if (e.key === 'ArrowLeft') step(-1);
+    });
+
+    // ═══════════════ INIT ═══════════════
+    $('countrySelect').addEventListener('change', e => {
+        saveState();
+        if (tab === 'country') loadCountryStations(e.target.value);
+        $('searchInCountry').disabled = !e.target.value;
+        $('searchCountryName').textContent = e.target.value ? countryName(e.target.value) : 'el país elegido';
+    });
+
+    $('searchInput').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(searchStations, 400);
+    });
+    $('searchInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { clearTimeout(searchTimer); searchStations(); e.target.blur(); }
+    });
+    $('searchInCountry').addEventListener('change', () => { saveState(); searchStations(); });
+
+    async function initRadio() {
+        $('searchInCountry').checked = !!saved.searchInCountry;
+        if (saved.last && saved.last.id) {
+            current = saved.last;
+            setStatus('PULSA ▶ PARA ESCUCHAR');
+            renderDisplay();
+            updateMediaSession();
+        }
+
+        await initServers();
+        try {
+            await loadCountries();
+            setStatus(current ? 'PULSA ▶ PARA ESCUCHAR' : `SISTEMA LISTO: ${servers[serverIdx].split('.')[0].toUpperCase()}`);
+        } catch (e) {
+            $('countrySelect').innerHTML = '<option value="">Sin conexión</option>';
+            setStatus('ERROR DE CONEXIÓN', 'error');
+            if (saved.tab === 'favs') setTab('favs');
+            return;
+        }
+
+        // País guardado o, la primera vez, el del idioma del navegador (es-ES → ES)
+        const guess = (navigator.language || '').split('-')[1];
+        const cc = saved.country || guess || '';
+        if (cc && [...$('countrySelect').options].some(o => o.value === cc.toUpperCase())) {
+            $('countrySelect').value = cc.toUpperCase();
+        }
+        $('searchInCountry').disabled = !$('countrySelect').value;
+        $('searchCountryName').textContent = $('countrySelect').value ? countryName($('countrySelect').value) : 'el país elegido';
+        setTab(['country', 'search', 'favs'].includes(saved.tab) ? saved.tab : 'country');
+    }
 
     initRadio();
 </script>
 </body>
-
 </html>
